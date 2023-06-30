@@ -1,0 +1,6 @@
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+WORKDIR /app
+
+COPY fake-service.exe /app
+
+ENTRYPOINT ["/app/fake-service"]

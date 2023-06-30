@@ -1,0 +1,381 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    name: web
+    app: sample-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: web
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        name: web
+        app: sample-app
+    spec:
+      containers:
+      - name: web
+        image: nicholasjackson/fake-service:v0.23.1
+        ports:
+        - containerPort: 9090
+        env:
+        - name: LISTEN_ADDR
+          value: 0.0.0.0:9090
+        - name: UPSTREAM_URIS
+          value: http://api:9090
+        - name: UPSTREAM_WORKERS
+          value: "2"
+        - name: MESSAGE
+          value: Hello from web
+        - name: NAME
+          value: web
+        - name: SERVER_TYPE
+          value: http
+        - name: TIMING_50_PERCENTILE
+          value: 30ms
+        - name: TIMING_90_PERCENTILE
+          value: 60ms
+        - name: TIMING_99_PERCENTILE
+          value: 90ms
+        - name: TIMING_VARIANCE
+          value: "10"
+        - name: TRACING_ZIPKIN
+          value: http://jaeger-collector.default.svc.cluster.local:9411
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  labels:
+    name: web
+    app: sample-app
+spec:
+  selector:
+    name: web
+    app: sample-app
+  ports:
+  - protocol: TCP
+    port: 9090
+    targetPort: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    name: api
+    app: sample-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: api
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        name: api
+        app: sample-app
+    spec:
+      containers:
+      - name: api
+        image: nicholasjackson/fake-service:v0.23.1
+        ports:
+        - containerPort: 9090
+        env:
+        - name: LISTEN_ADDR
+          value: 0.0.0.0:9090
+        - name: UPSTREAM_URIS
+          value: "grpc://currency:9090, http://cache:9090/abc/123123, http://payments:9090"
+        - name: UPSTREAM_WORKERS
+          value: "2"
+        - name: MESSAGE
+          value: "API response"
+        - name: NAME
+          value: api
+        - name: SERVER_TYPE
+          value: http
+        - name: TIMING_50_PERCENTILE
+          value: 20ms
+        - name: TIMING_90_PERCENTILE
+          value: 30ms
+        - name: TIMING_99_PERCENTILE
+          value: 40ms
+        - name: TIMING_VARIANCE
+          value: "10"
+        - name: HTTP_CLIENT_APPEND_REQUEST
+          value: "true"
+        - name: TRACING_ZIPKIN
+          value: http://jaeger-collector.default.svc.cluster.local:9411
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  labels:
+    name: api
+    app: sample-app
+spec:
+  selector:
+    name: api
+    app: sample-app
+  ports:
+  - protocol: TCP
+    port: 9090
+    targetPort: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache
+  labels:
+    name: cache
+    app: sample-app
+spec: 
+  replicas: 1
+  selector:
+    matchLabels:
+      name: cache
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        name: cache
+        app: sample-app
+    spec:
+      containers:
+      - name: cache
+        image: nicholasjackson/fake-service:v0.23.1
+        ports:
+        - containerPort: 9090
+        env:
+        - name: LISTEN_ADDR
+          value: 0.0.0.0:9090
+        - name: MESSAGE
+          value: "Cache response"
+        - name: NAME
+          value: cache
+        - name: SERVER_TYPE
+          value: http
+        - name: TIMING_50_PERCENTILE
+          value: 1ms
+        - name: TIMING_90_PERCENTILE
+          value: 2ms
+        - name: TIMING_99_PERCENTILE
+          value: 3ms
+        - name: TIMING_VARIANCE
+          value: "10"
+        - name: TRACING_ZIPKIN
+          value: http://jaeger-collector.default.svc.cluster.local:9411
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache
+  labels:
+    name: cache
+    app: sample-app
+spec:
+  selector:
+    name: cache
+    app: sample-app
+  ports:
+  - protocol: TCP
+    port: 9090
+    targetPort: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments
+  labels:
+    name: payments
+    app: sample-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: payments
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        name: payments
+        app: sample-app
+    spec:
+      containers:
+      - name: payments
+        image: nicholasjackson/fake-service:v0.23.1
+        ports:
+        - containerPort: 9090
+        env:
+        - name: LISTEN_ADDR
+          value: 0.0.0.0:9090
+        - name: UPSTREAM_URIS
+          value: "grpc://currency:9090"
+          # Uncomment for Windows only
+          # value: "grpc://currency:9090, http://fraudcheck:9090"
+        - name: UPSTREAM_WORKERS
+          value: "2"
+        - name: MESSAGE
+          value: "Payments response"
+        - name: NAME
+          value: payments
+        - name: SERVER_TYPE
+          value: http
+        - name: HTTP_CLIENT_APPEND_REQUEST
+          value: "true"
+        - name: TRACING_ZIPKIN
+          value: http://jaeger-collector.default.svc.cluster.local:9411
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payments
+  labels:
+    name: payments
+    app: sample-app
+spec:
+  selector:
+    name: payments
+    app: sample-app
+  ports:
+  - protocol: TCP
+    port: 9090
+    targetPort: 9090
+---
+# Will throw errors for 20% of all requests
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currency
+  labels:
+    name: currency
+    app: sample-app
+spec: 
+  replicas: 1
+  selector:
+    matchLabels:
+      name: currency
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        name: currency
+        app: sample-app
+    spec:
+      containers:
+      - name: currency
+        image: nicholasjackson/fake-service:v0.23.1
+        ports:
+        - containerPort: 9090
+        env:
+        - name: LISTEN_ADDR
+          value: 0.0.0.0:9090
+        - name: UPSTREAM_WORKERS
+          value: "2"
+        - name: MESSAGE
+          value: "Currency response"
+        - name: NAME
+          value: currency
+        - name: SERVER_TYPE
+          value: grpc
+        - name: ERROR_RATE
+          value: "0.2"
+        - name: ERROR_CODE
+          value: "14"
+        - name: ERROR_TYPE
+          value: http_error
+        - name: TRACING_ZIPKIN
+          value: http://jaeger-collector.default.svc.cluster.local:9411
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: currency
+  labels:
+    name: currency
+    app: sample-app
+spec:
+  selector:
+    name: currency
+    app: sample-app
+  ports:
+  - protocol: TCP
+    port: 9090
+    targetPort: 9090
+
+## Uncomment below for Windows only
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: fraudcheck
+#   labels:
+#     name: fraudcheck
+#     app: sample-app
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       name: fraudcheck
+#       app: sample-app
+#   template:
+#     metadata:
+#       labels:
+#         name: fraudcheck
+#         app: sample-app
+#     spec:
+#       containers:
+#       - name: fraudcheck
+#         image: netobsreg.azurecr.io/fake-service:win2022-v1
+#         ports:
+#         - containerPort: 9090
+#         env:
+#         - name: LISTEN_ADDR
+#           value: 0.0.0.0:9090
+#         - name: UPSTREAM_WORKERS
+#           value: "2"
+#         - name: MESSAGE
+#           value: "Fraudcheck response (Windows)"
+#         - name: NAME
+#           value: fraudcheck
+#         - name: SERVER_TYPE
+#           value: http
+#         - name: HTTP_CLIENT_APPEND_REQUEST
+#           value: "true"
+#         - name: TRACING_ZIPKIN
+#           value: http://jaeger-collector.default.svc.cluster.local:9411
+#       nodeSelector:
+#         kubernetes.io/os: windows
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: fraudcheck
+#   labels:
+#     name: fraudcheck
+#     app: sample-app
+# spec:
+#   selector:
+#     name: fraudcheck
+#     app: sample-app
+#   ports:
+#   - protocol: TCP
+#     port: 9090
+#     targetPort: 9090
