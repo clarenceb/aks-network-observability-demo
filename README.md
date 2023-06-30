@@ -177,9 +177,10 @@ az aks nodepool add \
     --os-type Windows \
     --name npwin \
     --node-vm-size Standard_D4s_v3 \
-    --node-count 1
+    --node-count 1 \
+    --node-taints "kubernetes.io/os=windows:NoSchedule"
 
-az aks update --name $CLUSTER --resource-group $RG_NAME --atach-acr netobsreg
+az aks update --name $CLUSTER --resource-group $RG_NAME --attach-acr netobsreg
 
 # Uncomment `sample-app.yaml` sections marked as "Windows only"
 
